@@ -1,0 +1,102 @@
+---
+title: "Data Challenge 3"
+author: "Yifan Lu"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 2
+    toc_float: yes
+    fig_height: 4.5
+    fig_width: 8
+  pdf_document:
+    fig_height: 3.5
+    fig_width: 3.5
+  word_document:
+    toc: no
+---
+https://github.com/cclyfblink/Data_Challenge_3_Yifan_Lu
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+```
+```{r}
+## load in the required libraries 
+library(readr)
+library(Hmisc)
+library(tidyverse)
+
+## disable scientific notation
+options(scipen = 999)
+```
+
+```{r}
+## read in the data 
+coffee_ratings <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-07/coffee_ratings.csv')
+head(coffee_ratings)
+```
+
+## Problem 1
+Write a function that returns a table with the mean and standard deviation of the columns aroma through moisture of the coffee ratings data for different categories of coffee. Produce the table for (a) species, (b) country of origin, and (c) binned mean altitude in meters.
+
+Write a function that returns the mean and standard deviation of a vector. (Hint: Use paste to return the mean and standard deviation together in a pleasing format.)
+
+Write a function that uses the function defined in the first step and returns the mean and standard deviation of the aroma through moisture columns over a specific grouping as a table (Hint: To make a table in Rmarkdown checkout the function knitr::kable.)
+
+Clean the coffee ratings data frame. This includes putting a ‘Missing’ for NAs for missing values and binning the mean altitude meters variable (checkout the function cut2 for this – and make sure to put any impossible values as missing.)
+
+Using map to calculate tables for the three groups (species, country of origin, binned mean altitude in meters) in one step.
+
+```{r}
+mean_sd <- function(x){
+    mean <- mean(as.numeric(x), na.rm = TRUE) |> round(2)
+    sd <- sd(as.numeric(x), na.rm = TRUE) |> round(2)
+    paste("Mean:", mean, "<br>SD:", sd)
+}
+```
+
+```{r}
+mean_sd_table <- function(data, group){
+    temp_data <- data |>
+    rename(group_var = all_of(group))
+    
+    temp_data |>
+       group_by(group_var) |>
+        summarise(across(aroma:moisture, mean_sd)) |>
+        knitr::kable(caption = paste("Table: Mean and SD by", group), escape = FALSE)
+}
+
+mean_sd_table(coffee_ratings, group = "species")
+```
+
+```{r}
+coffee_ratings <- coffee_ratings |>
+    mutate(binned_mean_alt = cut2(coffee_ratings$altitude_mean_meters, c(1000, 2000, 3000, 4000, 5000)))
+
+coffee_ratings_clean <- coffee_ratings |> 
+    mutate(across(everything(), ~if_else(is.na(.), "Missing", as.character(.))))
+```
+
+```{r}
+mean_sd_table(coffee_ratings_clean, group = "binned_mean_alt")
+```
+
+```{r}
+groups <- c("species", "country_of_origin", "binned_mean_alt")
+tables <- map(groups, ~mean_sd_table(data = coffee_ratings_clean, .))
+## For pleasing html output, we print out the tables individually
+print(tables[[1]])
+print(tables[[2]])
+print(tables[[3]])
+```
+
+
+## Problem 2
+Write a function that makes a scatterplot of any two variables from the columns aroma through moisture and colors the points by a particular grouping. Make the plot for (1) aroma versus flavor colored by species and (2) balance versus body colored by binned mean altitude. (Hint: Remove outliers to make a more compelling plot!)
+
+Write a function that plots two variables from a data frame and colors by group. (Hint: Use geom_jitter() with alpha blending to make a more aesthetically appealing plot.)
+
+Use pmap to iterate over a list of function arguments to produce two plots:
+
+Aroma versus flavor colored by species
+Balance versus body colored by binned mean altitude
