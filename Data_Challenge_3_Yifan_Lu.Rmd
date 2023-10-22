@@ -92,7 +92,10 @@ print(tables[[3]])
 
 
 ## Problem 2
-Write a function that makes a scatterplot of any two variables from the columns aroma through moisture and colors the points by a particular grouping. Make the plot for (1) aroma versus flavor colored by species and (2) balance versus body colored by binned mean altitude. (Hint: Remove outliers to make a more compelling plot!)
+Write a function that makes a scatterplot of any two variables from the columns aroma through moisture and colors the points by a particular grouping. Make the plot for 
+(1) aroma versus flavor colored by species and 
+(2) balance versus body colored by binned mean altitude.
+(Hint: Remove outliers to make a more compelling plot!)
 
 Write a function that plots two variables from a data frame and colors by group. (Hint: Use geom_jitter() with alpha blending to make a more aesthetically appealing plot.)
 
@@ -100,3 +103,36 @@ Use pmap to iterate over a list of function arguments to produce two plots:
 
 Aroma versus flavor colored by species
 Balance versus body colored by binned mean altitude
+
+```{r}
+# Remove outliers with IQR method
+Q1 <- coffee_ratings %>% summarise(across(aroma:moisture, ~quantile(., 0.25, na.rm = TRUE)))
+Q3 <- coffee_ratings %>% summarise(across(aroma:moisture, ~quantile(., 0.75, na.rm = TRUE)))
+IQR <- Q3 - Q1
+coffee_ratings_filtered <- coffee_ratings |>
+    filter(if_any(aroma:moisture, ~. >= Q1[[1]] - 1.5 * IQR[[1]] & . <= Q3[[1]] + 1.5 * IQR[[1]])) |>
+    mutate(across(everything(), ~if_else(is.na(.), "Missing", as.character(.))))
+```
+
+```{r}
+jitter_plot <- function(data, var1, var2, color){
+    data |>       
+        group_by(color) |>
+        ggplot(aes_string(x = var1, y = var2, color = color)) +
+        geom_jitter(alpha = 0.5) +
+        labs(title = paste(str_to_title(var1), "VS", str_to_title(var2), "colored by", color),
+             x = str_to_title(var1),
+             y = str_to_title(var2),
+             color = str_to_title(color)) +
+         theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+}
+```
+
+```{r}
+pmap(list(data = list(coffee_ratings_filtered, coffee_ratings_filtered),
+          var1 = c("aroma", "balance"),
+          var2 = c("flavor", "body"),
+          color = c("species", "binned_mean_alt")),
+     jitter_plot)
+```
+
