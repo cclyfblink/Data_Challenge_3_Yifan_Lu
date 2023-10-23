@@ -19,6 +19,7 @@ https://github.com/cclyfblink/Data_Challenge_3_Yifan_Lu
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
 ```
 ```{r}
 ## load in the required libraries 
@@ -85,9 +86,9 @@ mean_sd_table(coffee_ratings_clean, group = "binned_mean_alt")
 groups <- c("species", "country_of_origin", "binned_mean_alt")
 tables <- map(groups, ~mean_sd_table(data = coffee_ratings_clean, .))
 ## For pleasing html output, we print out the tables individually
-print(tables[[1]])
-print(tables[[2]])
-print(tables[[3]])
+tables[[1]]
+tables[[2]]
+tables[[3]]
 ```
 
 
