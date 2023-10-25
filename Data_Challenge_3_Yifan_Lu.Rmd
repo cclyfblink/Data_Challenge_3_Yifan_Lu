@@ -49,6 +49,7 @@ Clean the coffee ratings data frame. This includes putting a ‘Missing’ for N
 Using map to calculate tables for the three groups (species, country of origin, binned mean altitude in meters) in one step.
 
 ```{r}
+# Function which returns the mean and standard deviation of a vector
 mean_sd <- function(x){
     mean <- mean(as.numeric(x), na.rm = TRUE) |> round(2)
     sd <- sd(as.numeric(x), na.rm = TRUE) |> round(2)
@@ -57,35 +58,37 @@ mean_sd <- function(x){
 ```
 
 ```{r}
+# Function returns the mean and standard deviation of columns over a specific grouping as a table
 mean_sd_table <- function(data, group){
     temp_data <- data |>
     rename(group_var = all_of(group))
-    
     temp_data |>
        group_by(group_var) |>
         summarise(across(aroma:moisture, mean_sd)) |>
         knitr::kable(caption = paste("Table: Mean and SD by", group), escape = FALSE)
 }
-
-mean_sd_table(coffee_ratings, group = "species")
 ```
 
 ```{r}
+# Binning the mean altitude
 coffee_ratings <- coffee_ratings |>
     mutate(binned_mean_alt = cut2(coffee_ratings$altitude_mean_meters, c(1000, 2000, 3000, 4000, 5000)))
 
+# Replace all missing value as 'Missing'
 coffee_ratings_clean <- coffee_ratings |> 
     mutate(across(everything(), ~if_else(is.na(.), "Missing", as.character(.))))
 ```
 
 ```{r}
+# Checking 'binned_mean_alt'
 mean_sd_table(coffee_ratings_clean, group = "binned_mean_alt")
 ```
 
 ```{r}
+# Use map() to create tables of three group
 groups <- c("species", "country_of_origin", "binned_mean_alt")
 tables <- map(groups, ~mean_sd_table(data = coffee_ratings_clean, .))
-## For pleasing html output, we print out the tables individually
+## For pleasing html output, the tables are printed out individually
 tables[[1]]
 tables[[2]]
 tables[[3]]
@@ -112,12 +115,13 @@ Q3 <- coffee_ratings %>% summarise(across(aroma:moisture, ~quantile(., 0.75, na.
 IQR <- Q3 - Q1
 coffee_ratings_filtered <- coffee_ratings |>
     filter(if_any(aroma:moisture, ~. >= Q1[[1]] - 1.5 * IQR[[1]] & . <= Q3[[1]] + 1.5 * IQR[[1]])) |>
+    # Replace missing values with 'Missing'
     mutate(across(everything(), ~if_else(is.na(.), "Missing", as.character(.))))
 ```
 
 ```{r}
 jitter_plot <- function(data, var1, var2, color){
-    data |>       
+    data |>
         group_by(color) |>
         ggplot(aes_string(x = var1, y = var2, color = color)) +
         geom_jitter(alpha = 0.5) +
@@ -130,6 +134,7 @@ jitter_plot <- function(data, var1, var2, color){
 ```
 
 ```{r}
+# Use pmap() to plot two plots
 pmap(list(data = list(coffee_ratings_filtered, coffee_ratings_filtered),
           var1 = c("aroma", "balance"),
           var2 = c("flavor", "body"),
